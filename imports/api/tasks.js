@@ -4,6 +4,13 @@ import { check } from 'meteor/check';
 
 export const Tasks = new Mongo.Collection('tasks');
 
+if(Meteor.isServer){
+    // Code only runs on server
+    Meteor.publish('tasks', function tasksPublication(){
+        return Tasks.find();
+    });
+}
+
 Meteor.methods({
     'tasks.insert' (text){
         check(text, String);
@@ -37,6 +44,23 @@ Meteor.methods({
         Tasks.update(taskId, {
             $set: {
                 checked: setChecked
+            }
+        });
+    },
+    'tasks.setPrivate' (taskId, setToPrivate){
+        check(taskId, String);
+        check(setToPrivate, Boolean);
+
+        const task = Tasks.findOne(taskId);
+
+        // Only task owner may change privacy setting
+        if(task.owner !== Meteor.userId()){
+            throw new Meteor.Error('not-authorized');
+        }
+
+        Tasks.update(taskId, {
+            $set: {
+                private: setToPrivate
             }
         });
     },
